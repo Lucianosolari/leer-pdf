@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PDF a Audio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+        text-align: center;
+      }
+      input[type="file"] {
+        margin: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>HOLA TIA CAMILA</h1>
+    <h1>Leer PDF en voz alta</h1>
+    <input type="file" id="pdfInput" accept="application/pdf" />
+    <br />
+    <button onclick="leerPDF()">Leer en voz alta</button>
+
+    <script>
+      async function leerPDF() {
+        const archivo = document.getElementById("pdfInput").files[0];
+        if (!archivo) {
+          alert("Por favor selecciona un archivo PDF.");
+          return;
+        }
+
+        const lector = new FileReader();
+        lector.onload = async function () {
+          const typedarray = new Uint8Array(this.result);
+          const pdf = await pdfjsLib.getDocument(typedarray).promise;
+
+          let textoCompleto = "";
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const pagina = await pdf.getPage(i);
+            const contenido = await pagina.getTextContent();
+            const textos = contenido.items.map((item) => item.str).join(" ");
+            textoCompleto += textos + "\n";
+          }
+
+          // Leer el texto en voz alta
+          const mensaje = new SpeechSynthesisUtterance(textoCompleto);
+          mensaje.lang = "es-ES"; // puedes usar 'es-MX', 'es-AR', etc. para acento latino
+          mensaje.rate = 1; // velocidad
+          mensaje.pitch = 1; // tono
+
+          // Elegir voz latinoamericana si existe
+          const voces = speechSynthesis.getVoices();
+          const vozLatina = voces.find(
+            (v) => v.lang.includes("es") && !v.name.includes("España")
+          );
+          if (vozLatina) mensaje.voice = vozLatina;
+
+          speechSynthesis.cancel(); // por si hay una voz activa
+          speechSynthesis.speak(mensaje);
+        };
+
+        lector.readAsArrayBuffer(archivo);
+      }
+
+      // Cargar voces (algunos navegadores requieren interacción previa)
+      window.speechSynthesis.onvoiceschanged = () => {
+        speechSynthesis.getVoices();
+      };
+    </script>
+  </body>
+</html>
